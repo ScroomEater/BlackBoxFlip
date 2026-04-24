@@ -54,29 +54,30 @@ class FlipFlop2():
         random.seed(323)
 
 
-    def genData(self, n_steps: int, bits:int = 3, p: float = 0.2):
+    def genData(self, n_steps: int, bits:int = 3, batch_size: int = 1, p: float = 0.2):
         """
         Generates test data for n_steps
         bits: number of bits to model
         p: probability that a bit flips
+        returns tuple of arrays (inp, out), each with shape (batch_size, n_steps, bits)
         """
 
-        unsigned_inp = np.random.binomial(1, p=p, size=[n_steps, bits])  # Array of 0s and 1s, 1s with frequency p
-        unsigned_out = 2 * np.random.binomial(1, p=0.5, size=[n_steps, bits]) - 1  # Array of -1s and 1s, 50-50
+        unsigned_inp = np.random.binomial(1, p=p, size=[batch_size, n_steps, bits])  # Array of 0s and 1s, 1s with frequency p
+        unsigned_out = 2 * np.random.binomial(1, p=0.5, size=[batch_size, n_steps, bits]) - 1  # Array of -1s and 1s, 50-50
 
         # This represents the signal to feed to the model
         inp = np.multiply(unsigned_inp, unsigned_out)  # Array of -1, 0, 1. -1/1 with frequency p, 0 with frequency 1-p
-        inp[0, :] = 1
+        inp[:, 0, :] = 1
 
         # Expected output array, shape (n_steps, bits)
         out = np.zeros_like(inp)
-
-        for b in range(bits):
-            flip_times = np.where(inp[:, b].squeeze() != 0) # An array of times the bit recieves a signal
-            
-            for i in range(len(flip_times[0])):
-                t = flip_times[0][i]
-                out[t:, b] = inp[t, b]
+        for batch in range(batch_size):
+            for b in range(bits):
+                flip_times = np.where(inp[batch, :, b].squeeze() != 0) # An array of times the bit recieves a signal
+                
+                for i in range(len(flip_times[0])):
+                    t = flip_times[0][i]
+                    out[batch, t:, b] = inp[batch, t, b]
 
 
         return inp, out
@@ -90,7 +91,10 @@ print(np.where(arr != 0))
 """
 
 flipTest = FlipFlop2()
-inp, out = flipTest.genData(30, 3)
-
-for i, o in zip(inp, out):
-    print(i, o)
+inp, out = flipTest.genData(30, 3, batch_size=3)
+print(inp.shape)
+for b in range(len(inp)):
+    for i, o in zip(inp[b], out[b]):
+        print(i, o)
+    
+    print('\n'*3)
