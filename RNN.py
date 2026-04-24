@@ -1,16 +1,27 @@
-# This file is for a basic recursive neural network
+# This file is for a basic recurrent neural network
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 import numpy as np
+import matplotlib.pyplot as plt
 
 class RNN(nn.Module):
+    """
+    d_in: dimension of input data
+    d_out: output dimension
+    n_layers: the number of hidden layers
+    d_model: either an int representing the dimension of the hidden layers,
+        or a list of hidden layers
+    """
     def __init__(self, d_in, d_out, n_layers: int = 1, d_model: int | list =64):
         """
         d_model supports list for layers of different dimension or int for constant dim
         """
         super().__init__()
         
-        if type(d_model) == list or type(d_model) == np.ndarray:
+        # TODO consider adding layer_norm
+
+        if isinstance(d_model, list) or isinstance(d_model, np.ndarray):
             if n_layers != len(d_model):
                 raise ValueError("The number of layers should be equal to the size of d_model")
             
@@ -55,7 +66,7 @@ class RNN(nn.Module):
 
         if h_0 is None:
             if type(self.hidden_size) == int:
-                h_0 = torch.zeros(self.n_layers, batch_size, self.hidden_size)
+                h_0 = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=data.device)
             else:
                 h_0 = []
                 for size in self.hidden_size:
@@ -77,7 +88,75 @@ class RNN(nn.Module):
         return torch.stack(preds, dim=1) # Change to torch tensor, apparently stack() is faster than tensor()
 
 
+
+
+# Review this again
+def train(
+    model: RNN,
+    data: np.ndarray | torch.Tensor,
+    targets: np.ndarray | torch.Tensor | None = None,
+    epochs: int = 100,
+    lr: float = 1e-3,
+    batch_size: int = 32,
+    seq_len: int = 32,
+) -> list[float]:
+    if isinstance(data, np.ndarray):
+        data = torch.tensor(data, dtype=torch.float32)
+    if data.dim() == 1:
+        data = data.unsqueeze(-1)
+
+    if targets is None:
+        # Default: next-step prediction
+        inputs = data[:-1]
+        targets = data[1:]
+    else:
+        if isinstance(targets, np.ndarray):
+            targets = torch.tensor(targets, dtype=torch.float32)
+        if targets.dim() == 1:
+            targets = targets.unsqueeze(-1)
+        inputs = data
+
+    # Split into non-overlapping windows: (n_windows, seq_len, features/d_out)
+    n_obs = inputs.shape[0]
+    n_windows = n_obs // seq_len
+    inputs  = inputs[:n_windows * seq_len].reshape(n_windows, seq_len, -1)
+    targets = targets[:n_windows * seq_len].reshape(n_windows, seq_len, -1)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    losses: list[float] = []
+
+    for _ in range(epochs):
+        epoch_loss = 0.0
+        perm = torch.randperm(n_windows)
+
+        for i in range(0, n_windows, batch_size):
+            idx = perm[i : i + batch_size]
+            x, y = inputs[idx], targets[idx]
+
+            optimizer.zero_grad()
+            preds = model(x)
+            loss = criterion(preds, y)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
+
+            epoch_loss += loss.item()
+
+        losses.append(epoch_loss / max(1, n_windows // batch_size))
+
+    return losses
+
+
+def trainFORCE(model, data, targets, initial, chaos, int_ts):
+    pass
+
 # Random normal data:
-data = np.random.random(100)
-model = RNN(1, 1, n_layers=2)
+data = np.random.rand(100000, 1)
+model = RNN(1, 1, n_layers=1, d_model=1000)
+
+losses = train(model=model, data=data)
+
+plt.plot(losses)
+plt.show()
 
