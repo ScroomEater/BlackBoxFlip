@@ -150,7 +150,7 @@ def train(
 
 def trainFORCE(model, data, targets, initial, chaos, int_ts):
     pass
-
+"""
 # Random normal data:
 data = np.random.rand(100000, 1)
 model = RNN(1, 1, n_layers=1, d_model=1000)
@@ -159,4 +159,4 @@ losses = train(model=model, data=data)
 
 plt.plot(losses)
 plt.show()
-
+"""

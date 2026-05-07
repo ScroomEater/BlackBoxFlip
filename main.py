@@ -1,21 +1,17 @@
 import numpy as np
+import matplotlib.pyplot as plt
+#import sklearn
+#import rnn
+#import flipflop
 
-batch_size = 64
-time = 500
+batch_size = 10
+n_steps = 10000
 bits = 3
-p = 0.2
+n_layers = 1
+d_model = 1000
 
-unsigned_inp = np.random.binomial(1,p,[batch_size,time//10,bits])
-unsigned_out = 2*np.random.binomial(1,0.5,[batch_size,time//10,bits]) -1 
+#model = rnn.RNN(d_in=bits, d_out=bits, n_layers=n_layers, d_model=d_model)
+#dataGen = flipflop.FlipFlop2()
 
-inputs = np.multiply(unsigned_inp,unsigned_out)
-print(inputs)
-print()
-inputs[:,0,:] = 1
-print(inputs)
-print()
-inputs = np.repeat(inputs,10,axis=1)
-output = np.zeros_like(inputs)
-
-print(inputs[0][:30])
-print()
+data = np.array([137, 134, 205, 19, 25, 26, 831, 108, 42.6])
+print(data.mean(), data.std())
