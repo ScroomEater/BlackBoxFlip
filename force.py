@@ -57,6 +57,7 @@ class Reservoir():
 
 
 """
+testing 
 example training loop:
 model = Reservoir(i, o, N, g)
 learner = ForceLearner(model, a)
