@@ -55,7 +55,42 @@ class Reservoir():
     def __len__(self):
         return self.N
 
+def FindMinima(reservoir, inp_fixed, z_fixed, n_candidates=10, max_iters=2000):
 
+    N = reservoir.N
+    device = reservoir.x.device
+
+    states = torch.randn((n_candidates, N, 1), device=device, requires_grad=True)
+
+    optimizer = optim.LBFGS([states], lr=0.1, max_iter=20)
+    
+    def closure():
+        optimizer.zero_grad()
+
+        r = torch.tanh(states)
+
+        v = (-1 * states + 
+             reservoir.J_layer @ r + 
+             reservoir.Jf_layer @ z_fixed + 
+             reservoir.B @ inp_fixed)
+        
+        q = 0.5 * torch.sum(v**2)
+        q.backward()
+        return q
+
+    for i in range(max_iters):
+        current_q = optimizer.step(closure)
+        if current_q < 1e-9: # Convergence threshold
+            break
+            
+
+    with torch.no_grad():
+        final_r = torch.tanh(states)
+        final_v = (-1 * states + reservoir.J_layer @ final_r + 
+                   reservoir.Jf_layer @ z_fixed + reservoir.B @ inp_fixed)
+        speeds = torch.norm(final_v, dim=(1, 2))
+        
+    return states.detach(), speeds
 """
 testing 
 example training loop:
